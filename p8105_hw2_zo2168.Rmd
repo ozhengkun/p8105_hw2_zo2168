@@ -1,0 +1,91 @@
+---
+title: "homework 2"
+author: "Zhengkun Ou"
+date: "2024-09-27"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(readxl)
+```
+Read and clean the data; retain line, station, name, station latitude / longitude, routes served, entry, vending, entrance type, and ADA compliance. Convert the entry variable from character (YES vs NO) to a logical variable (the ifelse or case_match function may be useful).
+
+```{r}
+nyc_sub = read_csv(file = "NYC_Transit_Subway_Entrance_And_Exit_Data.csv", na = c(".", "NA", ""))
+nyc_sub <- janitor::clean_names(nyc_sub)
+nyc_filtered <- nyc_sub |> select(line, station_name, station_latitude, station_longitude, route1:route11, entry, vending, entrance_type, ada) |> mutate(entry = case_match(entry, "YES" ~ TRUE, "NO" ~ FALSE))
+
+``` 
+Write a short paragraph about this dataset – explain briefly what variables the dataset contains, describe your data cleaning steps so far, and give the dimension (rows x columns) of the resulting dataset. Are these data tidy?
+
+The data sleaning steps include using the `select` and `mutate` function to select the columns we want to use and the mutate function to replace the column with the specification we want to apply. \
+It is a 19 * 1868 table. 
+```{r}
+ncol(nyc_filtered)
+nrow(nyc_filtered)
+```
+
+
+Answer the following questions using these data:
+
+How many distinct stations are there? Note that stations are identified both by name and by line (e.g. 125th St 8th Avenue; 125st Broadway; 125st Lenox); the distinct function may be useful here.
+```{r}
+nrow(distinct(nyc_filtered, pull(nyc_filtered, station_name)))
+```
+
+How many stations are ADA compliant?
+```{r}
+nyc_filtered |> filter(ada == T) |> nrow() 
+```
+468 stations are ADA compliant. 
+What proportion of station entrances / exits without vending allow entrance?
+```{r}
+(nyc_filtered |> filter(vending == "NO", entry == TRUE) %>% nrow()) / nrow(nyc_filtered)
+
+```
+
+Reformat data so that route number and route name are distinct variables. How many distinct stations serve the A train? 
+
+```{r}
+#only the first 7 routes have the type char, means the rest would not contain "A"
+rform_nyc <- nyc_filtered |> select(-(route8:route11))
+rform_long <- rform_nyc |> pivot_longer(cols = starts_with("route"), names_to = "route_type", values_to = "route_name") |> filter(!is.na(route_name))
+a_train_stations <- rform_long |> filter(route_name == "A") |> distinct(station_name)
+nrow(a_train_stations)
+```
+Of the stations that serve the A train, how many are ADA compliant?
+```{r}
+rform_long |> filter(route_name == "A",entry == TRUE) |> distinct(station_name) |> nrow()
+```
+
+#Question 2
+Read and clean the Mr.Trash Wheeel dataset
+```{r}
+library(readxl)
+mr_trash <- read_excel("202309 Trash Wheel Collection Data.xlsx", sheet = "Mr. Trash Wheel", range = "A2:N586", na = c("NA", "", ".")) |> 
+  janitor::clean_names() |> 
+  mutate(sports_balls = as.integer(sports_balls), type = "mr_trash", year = as.numeric(year)) |> 
+  drop_na()
+pro_trash <- read_excel("202309 Trash Wheel Collection Data.xlsx", sheet = "Professor Trash Wheel", range = "A2:M108", na = c("NA", "", ".")) |> 
+  janitor::clean_names() |> 
+  mutate(type = "pro_trash")
+gwynnda <- read_excel("202309 Trash Wheel Collection Data.xlsx", sheet = "Professor Trash Wheel", range = "A2:L157", na = c("NA", "", ".")) |> 
+  janitor::clean_names() |> 
+  mutate(type = "gwynnda") 
+# I don;t think it is necessary to include the month and year in it since it has already had the data, also move the type at front to let it looks more briefly.
+total_df <- bind_rows(mr_trash, pro_trash, gwynnda) |> select(-month, -year) |> relocate(type)
+
+total_weight_pro_trash <- total_df |> filter(type == "pro_trash") |> summarise(total_weight_collected = sum(weight_tons, na.rm = TRUE))
+total_weight_pro_trash
+```
+Firstly read the three dataset and cleaned it by using `na=c("NA", "", ".")` and `janitor::clean_names()`. For the mr trash dataset, round the number of sprts balls to the nearest integer and converts the result to an integer variable. As the `year` variable in mr_trash dataset is char tyep, it was transfered into double type by using `as.numeric`. 
+By using the `bind_rows()` function, three dataset are combined. `month` and `year` are removed due to the repeat of it in `data` . `type` is moved into the first column. 
+
+the number of observations are `r nrow(total_df)`, and the key variables include the weight of trash in tons, and the number of cigarette butts each dumpster collected. the 
+
+```{r}
+
+```
+
