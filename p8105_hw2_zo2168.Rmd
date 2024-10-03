@@ -10,6 +10,8 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(readxl)
 ```
+
+# Question 1
 Read and clean the data; retain line, station, name, station latitude / longitude, routes served, entry, vending, entrance type, and ADA compliance. Convert the entry variable from character (YES vs NO) to a logical variable (the ifelse or case_match function may be useful).
 
 ```{r}
@@ -17,75 +19,279 @@ nyc_sub = read_csv(file = "NYC_Transit_Subway_Entrance_And_Exit_Data.csv", na = 
 nyc_sub <- janitor::clean_names(nyc_sub)
 nyc_filtered <- nyc_sub |> select(line, station_name, station_latitude, station_longitude, route1:route11, entry, vending, entrance_type, ada) |> mutate(entry = case_match(entry, "YES" ~ TRUE, "NO" ~ FALSE))
 
-``` 
-Write a short paragraph about this dataset – explain briefly what variables the dataset contains, describe your data cleaning steps so far, and give the dimension (rows x columns) of the resulting dataset. Are these data tidy?
+```
 
-The data sleaning steps include using the `select` and `mutate` function to select the columns we want to use and the mutate function to replace the column with the specification we want to apply. \
-It is a 19 * 1868 table. 
+Write a short paragraph about this dataset -- explain briefly what variables the dataset contains, describe your data cleaning steps so far, and give the dimension (rows x columns) of the resulting dataset. Are these data tidy?
+
+The data sleaning steps include using the `select` and `mutate` function to select the columns we want to use and the mutate function to replace the column with the specification we want to apply.\
+It is a 19 \* 1868 table.
+
 ```{r}
 ncol(nyc_filtered)
 nrow(nyc_filtered)
 ```
 
-
 Answer the following questions using these data:
 
 How many distinct stations are there? Note that stations are identified both by name and by line (e.g. 125th St 8th Avenue; 125st Broadway; 125st Lenox); the distinct function may be useful here.
+
 ```{r}
 nrow(distinct(nyc_filtered, pull(nyc_filtered, station_name)))
 ```
 
 How many stations are ADA compliant?
+
 ```{r}
-nyc_filtered |> filter(ada == T) |> nrow() 
+nyc_filtered |> 
+  filter(ada == T) |> 
+  nrow() 
 ```
-468 stations are ADA compliant. 
-What proportion of station entrances / exits without vending allow entrance?
+
+468 stations are ADA compliant. What proportion of station entrances / exits without vending allow entrance?
+
 ```{r}
-(nyc_filtered |> filter(vending == "NO", entry == TRUE) %>% nrow()) / nrow(nyc_filtered)
+(nyc_filtered |> 
+   filter(vending == "NO", entry == TRUE) |>
+   nrow()) / nrow(nyc_filtered)
 
 ```
 
-Reformat data so that route number and route name are distinct variables. How many distinct stations serve the A train? 
+Reformat data so that route number and route name are distinct variables. How many distinct stations serve the A train?
 
 ```{r}
 #only the first 7 routes have the type char, means the rest would not contain "A"
-rform_nyc <- nyc_filtered |> select(-(route8:route11))
-rform_long <- rform_nyc |> pivot_longer(cols = starts_with("route"), names_to = "route_type", values_to = "route_name") |> filter(!is.na(route_name))
-a_train_stations <- rform_long |> filter(route_name == "A") |> distinct(station_name)
+rform_nyc <- 
+  nyc_filtered |> 
+  select(-(route8:route11))
+rform_long <- 
+  rform_nyc |> 
+  pivot_longer(cols = starts_with("route"), 
+               names_to = "route_type", 
+               values_to = "route_name") |> 
+  filter(!is.na(route_name))
+a_train_stations <- 
+  rform_long |> 
+  filter(route_name == "A") |> 
+  distinct(station_name)
 nrow(a_train_stations)
 ```
+
 Of the stations that serve the A train, how many are ADA compliant?
+
 ```{r}
-rform_long |> filter(route_name == "A",entry == TRUE) |> distinct(station_name) |> nrow()
+rform_long |> 
+  filter(route_name == "A",entry == TRUE) |> 
+  distinct(station_name) |> 
+  nrow()
 ```
 
-#Question 2
-Read and clean the Mr.Trash Wheeel dataset
+# Question 2 
+
+Import data and combine them
 ```{r}
-library(readxl)
-mr_trash <- read_excel("202309 Trash Wheel Collection Data.xlsx", sheet = "Mr. Trash Wheel", range = "A2:N586", na = c("NA", "", ".")) |> 
+mr_trash <- 
+  read_excel("202409 Trash Wheel Collection Data.xlsx", 
+             sheet = "Mr. Trash Wheel", 
+             range = "A2:N653", 
+             na = c("NA", "", ".")) |> 
   janitor::clean_names() |> 
-  mutate(sports_balls = as.integer(sports_balls), type = "mr_trash", year = as.numeric(year)) |> 
-  drop_na()
-pro_trash <- read_excel("202309 Trash Wheel Collection Data.xlsx", sheet = "Professor Trash Wheel", range = "A2:M108", na = c("NA", "", ".")) |> 
+  mutate(sports_balls = as.integer(sports_balls), 
+         type = "mr_trash", 
+         year = as.numeric(year))
+pro_trash <- 
+  read_excel("202409 Trash Wheel Collection Data.xlsx", 
+             sheet = "Professor Trash Wheel", 
+             range = "A2:M120", 
+             na = c("NA", "", ".")) |> 
   janitor::clean_names() |> 
   mutate(type = "pro_trash")
-gwynnda <- read_excel("202309 Trash Wheel Collection Data.xlsx", sheet = "Professor Trash Wheel", range = "A2:L157", na = c("NA", "", ".")) |> 
+gwynnda <- 
+  read_excel("202409 Trash Wheel Collection Data.xlsx", 
+             sheet = "Gwynnda Trash Wheel", 
+             range = "A2:L265", 
+             na = c("NA", "", ".")) |> 
   janitor::clean_names() |> 
   mutate(type = "gwynnda") 
-# I don;t think it is necessary to include the month and year in it since it has already had the data, also move the type at front to let it looks more briefly.
-total_df <- bind_rows(mr_trash, pro_trash, gwynnda) |> select(-month, -year) |> relocate(type)
-
-total_weight_pro_trash <- total_df |> filter(type == "pro_trash") |> summarise(total_weight_collected = sum(weight_tons, na.rm = TRUE))
-total_weight_pro_trash
+# I don't think it is necessary to include the month and year in it since it has already had the data, also move the type at front to let it looks more clean. 
+total_df <- 
+  bind_rows(mr_trash, pro_trash, gwynnda) |> 
+  select(-month, -year) |> 
+  relocate(type)
+nrow(total_df)
+ncol(total_df)
 ```
-Firstly read the three dataset and cleaned it by using `na=c("NA", "", ".")` and `janitor::clean_names()`. For the mr trash dataset, round the number of sprts balls to the nearest integer and converts the result to an integer variable. As the `year` variable in mr_trash dataset is char tyep, it was transfered into double type by using `as.numeric`. 
-By using the `bind_rows()` function, three dataset are combined. `month` and `year` are removed due to the repeat of it in `data` . `type` is moved into the first column. 
+Firstly read the three dataset and cleaned it by using `na=c("NA", "", ".")` and `janitor::clean_names()`. For the mr trash dataset, round the number of sprts balls to the nearest integer and converts the result to an integer variable. As the `year` variable in mr_trash dataset is char type, it was transfered into double type by using `as.numeric`. By using the `bind_rows()` function, three dataset are combined. `month` and `year` are removed due to the repeat of it in `data` . `type` is moved into the first column.
 
-the number of observations are `r nrow(total_df)`, and the key variables include the weight of trash in tons, and the number of cigarette butts each dumpster collected. the 
 
 ```{r}
+#Total weight collected by Professor Trash Wheel
+total_weight_pro_trash <- 
+  total_df |> 
+  filter(type == "pro_trash") |> 
+  select(weight_tons) |> 
+  sum(na.rm= TRUE)
+total_weight_pro_trash
 
 ```
 
+
+```{r}
+#Total number of cigarette butts collected by Gwynnda in June of 2022 
+num_cigarette <- 
+  gwynnda |> 
+  filter(year == 2022, month == "June") |> 
+  select(cigarette_butts) |> 
+  sum(na.rm = TRUE)
+num_cigarette
+```
+
+The number of observations are `r nrow(total_df)`, and the key variables include the weight of trash in tons, and the number of cigarette butts each dumpster collected. The total weight collected by Professor Trash Wheel is `r total_weight_pro_trash`. Total number of cigarette butts collected by Gwynnda in June of 2022 is 18120
+
+# Question 3
+
+Import dataset:
+
+```{r}
+#sperate the baker name into first name and second name and ready to join another dataset
+bakers <- 
+  read_csv("gbb_datasets/bakers.csv", na = c(".", "NA", "")) |> 
+  janitor::clean_names() |> 
+  separate(baker_name, into = c("baker", "last_name"), sep = " ")
+#Change the '"Jo"' in dataset to 'Jo' for furthur match. 
+bakes <- 
+  read_csv("gbb_datasets/bakes.csv", na = c(".", "NA", ""))|>
+  janitor::clean_names() |> 
+  mutate(baker = case_match(
+    baker,
+    '"Jo"' ~ 'Jo',
+    .default = baker
+  ))
+
+#Skip the first two lines in dataset as they are either blank or contains comments we don't want, and change Joanne to Jo, reason explained later. 
+results <- read_csv("gbb_datasets/results.csv", na = c(".", "NA", ""), skip = 2) 
+
+results <- janitor::clean_names(results)
+```
+
+
+```{r}
+anti_join(results, bakes, by = "baker")
+```
+
+By using `anti_join()`, from bakes into results, I found that the Joanne could possibly the Joe. And the rest unmatched results belongs to series 9 and 10, which didn't show up in the bakes dataset. 
+```{r}
+anti_join(bakes, results, by = "baker")
+```
+
+By using `anti_join()`, from results into bakes, I found that *Jo* is the baker name appears in the bakes dataset and didn't appear in the results dataset. 
+
+
+```{r}
+anti_join(bakers, bakes, by = "baker")
+```
+By using `anti_join()`, from bakes into bakers, I found that there are more _baker_ in bakers dataset, this is because it include baker in series 9 and 10, which are not included in bakes dataset. 
+
+```{r}
+anti_join(bakes, bakers, by = "baker")
+```
+
+
+This means all the _baker_ in bakers dataset are included in the bakes dataset. 
+
+```{r}
+anti_join(bakers, results, by = "baker")
+```
+Jo is in bakers dataset but not in results dataset. 
+
+```{r}
+anti_join(results, bakers, by = "baker")
+```
+
+Joanne is in result dataset but not in the bakers dataset. So I think Jo is Joanne based on the results of this dataset
+```{r}
+results_new <- results |>
+  mutate(baker = replace(baker, baker == "Joanne", "Jo"))
+```
+
+
+```{r}
+combined_df <- 
+  results_new |> 
+  left_join(bakers, by = c("baker","series")) |> 
+  left_join(bakes, by = c("series", "episode", "baker"))|>
+  arrange(baker) |> 
+  rename(first_name = baker) |> 
+  relocate(first_name, last_name) |>
+  drop_na(result)
+```
+Start to join the table, index use baker, series, and episode to combine *bakers* into *results_new*. The reason is that results contains the most of _baker_ and combining this two will return the full list of names, even with the _baker_ in series 9 and 10 which are not included in the bakes dataset. Then combine *bakes* dataset into combined dataset by *series*, *episode*, *baker*. Also, in Bakes, there is a "Jo", but in the results, there is not Jo, and in bakers, there is Jo. So we use the `case_match()` to changed the format of "Jo" in *bakes* dataset for the convenience of future combining. \
+
+I re-arrange the dataset based on the first name since I am recording each person's data and I think it would be necessary to put the baker's first name in the first column for clearness. Then I drop the NA results since NA appears after a person is out so putting NA there after they are out doesn't seems making sense. \
+
+My question is about Jo, I think based on result from `anti_join`, Jo should be Joanne.  
+
+
+```{r}
+combined_df |> 
+  filter(result == "[a]")
+```
+There is a [a] in the result which happened above, this is left here and worth further discussion. 
+
+```{r}
+write_csv(combined_df, "gbb_datasets/combined_df.csv")
+```
+
+
+
+
+```{r}
+combined_df_winner_star <- 
+  combined_df |>
+  filter(series %in% 5:10, 
+         result %in% c("STAR BAKER", "WINNER")) |> 
+  arrange(series, episode) |> 
+  select(first_name:result, -technical, - last_name, -result, Series = series) |>
+  pivot_wider(
+    names_from = episode,
+    values_from = first_name,
+    names_prefix = "Episode_"
+  )
+  
+knitr::kable(combined_df_winner_star)
+```
+Before episode 10, all the names in the table are the star bakers. The name on last episode(episode 10) is the winner. Usually the winner were star baker, except David, which is a surprise 
+
+
+```{r}
+viewers <- 
+  read_csv("gbb_datasets/viewers.csv", na = c(".", "NA", "")) |> 
+  janitor::clean_names() 
+longer_viewers <- 
+  viewers |> 
+  pivot_longer(cols = starts_with("series"), 
+               names_to = "series", 
+               names_prefix = "series_",
+               values_to = "viewer") |>
+  mutate(series = as.numeric(series)) |>
+  relocate(series) |>
+  arrange(series, episode)
+
+head(viewers, 10)
+head(longer_viewers, 10)
+```
+To clarify, I think both two tables make sense for different porpose. 
+
+```{r}
+mean_season1 <- 
+  longer_viewers |>
+  filter(series == 1) |>
+  pull(viewer) |>
+  mean(na.rm = TRUE)
+
+mean_season5 <- longer_viewers |>
+  filter(series == 5) |>
+  pull(viewer) |>
+  mean(na.rm = TRUE)
+```
+
+The average viewership in season 1 is `r mean_season1`, in season 5 is `r mean_season5`
