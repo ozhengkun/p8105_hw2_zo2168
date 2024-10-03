@@ -1,6 +1,6 @@
 ---
-title: "homework 2"
-author: "Zhengkun Ou"
+title: "p8105_hw2_zo2168"
+author: "Zhengkun Ou ZO2168"
 date: "2024-09-27"
 output: github_document
 ---
@@ -17,11 +17,13 @@ Read and clean the data; retain line, station, name, station latitude / longitud
 ```{r}
 nyc_sub = read_csv(file = "NYC_Transit_Subway_Entrance_And_Exit_Data.csv", na = c(".", "NA", ""))
 nyc_sub <- janitor::clean_names(nyc_sub)
-nyc_filtered <- nyc_sub |> select(line, station_name, station_latitude, station_longitude, route1:route11, entry, vending, entrance_type, ada) |> mutate(entry = case_match(entry, "YES" ~ TRUE, "NO" ~ FALSE))
+nyc_filtered <- nyc_sub |> 
+  select(line, station_name, station_latitude, station_longitude, route1:route11, entry, vending, entrance_type, ada) |> 
+  mutate(entry = case_match(entry, "YES" ~ TRUE, "NO" ~ FALSE))
 
 ```
 
-Write a short paragraph about this dataset -- explain briefly what variables the dataset contains, describe your data cleaning steps so far, and give the dimension (rows x columns) of the resulting dataset. Are these data tidy?
+
 
 The data sleaning steps include using the `select` and `mutate` function to select the columns we want to use and the mutate function to replace the column with the specification we want to apply.\
 It is a 19 \* 1868 table.
@@ -31,13 +33,12 @@ ncol(nyc_filtered)
 nrow(nyc_filtered)
 ```
 
-Answer the following questions using these data:
 
-How many distinct stations are there? Note that stations are identified both by name and by line (e.g. 125th St 8th Avenue; 125st Broadway; 125st Lenox); the distinct function may be useful here.
 
 ```{r}
 nrow(distinct(nyc_filtered, pull(nyc_filtered, station_name)))
 ```
+There are 356 distinct stations
 
 How many stations are ADA compliant?
 
@@ -47,16 +48,17 @@ nyc_filtered |>
   nrow() 
 ```
 
-468 stations are ADA compliant. What proportion of station entrances / exits without vending allow entrance?
+468 stations are ADA compliant. 
+`num` of station entrances / exits without vending allow entrance
 
 ```{r}
-(nyc_filtered |> 
+num <- (nyc_filtered |> 
    filter(vending == "NO", entry == TRUE) |>
    nrow()) / nrow(nyc_filtered)
 
 ```
 
-Reformat data so that route number and route name are distinct variables. How many distinct stations serve the A train?
+
 
 ```{r}
 #only the first 7 routes have the type char, means the rest would not contain "A"
@@ -75,15 +77,16 @@ a_train_stations <-
   distinct(station_name)
 nrow(a_train_stations)
 ```
-
-Of the stations that serve the A train, how many are ADA compliant?
+56 A train stations 
 
 ```{r}
 rform_long |> 
   filter(route_name == "A",entry == TRUE) |> 
   distinct(station_name) |> 
   nrow()
+
 ```
+55 are ADA compliant
 
 # Question 2 
 
@@ -145,7 +148,7 @@ num_cigarette <-
 num_cigarette
 ```
 
-The number of observations are `r nrow(total_df)`, and the key variables include the weight of trash in tons, and the number of cigarette butts each dumpster collected. The total weight collected by Professor Trash Wheel is `r total_weight_pro_trash`. Total number of cigarette butts collected by Gwynnda in June of 2022 is 18120
+The number of observations are `r nrow(total_df)`, and the key variables include the weight of trash in tons, and the number of cigarette butts each dumpster collected.For example, mr trash dumpster 1 collected 4.31 tons of trash and 126000 cigarette butts, 72 glass bottles and 584 plastci bags. The total weight collected by Professor Trash Wheel is `r total_weight_pro_trash`. Total number of cigarette butts collected by Gwynnda in June of 2022 is 18120
 
 # Question 3
 
@@ -241,9 +244,6 @@ There is a [a] in the result which happened above, this is left here and worth f
 write_csv(combined_df, "gbb_datasets/combined_df.csv")
 ```
 
-
-
-
 ```{r}
 combined_df_winner_star <- 
   combined_df |>
@@ -279,7 +279,7 @@ longer_viewers <-
 head(viewers, 10)
 head(longer_viewers, 10)
 ```
-To clarify, I think both two tables make sense for different porpose. 
+To clarify, I think both two tables make sense for different purpose. 
 
 ```{r}
 mean_season1 <- 
